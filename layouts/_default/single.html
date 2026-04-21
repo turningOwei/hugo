@@ -2,57 +2,8 @@
 <div class="container">
     <h2>JSON 数据解析</h2>
 
-    <!-- 员工数据示例展示 -->
-    <div class="demo-section">
-        <h3>示例：员工数据（来自 data/employees.json）</h3>
-        <div class="employee-grid">
-            {{ range .Site.Data.employees }}
-            <div class="employee-card">
-                <h3>{{ .name }}</h3>
-                <div class="employee-info">
-                    <p><strong>ID:</strong> {{ .id }}</p>
-                    <p><strong>邮箱:</strong> {{ .email }}</p>
-                    <p><strong>年龄:</strong> {{ .age }}</p>
-                    <p><strong>部门:</strong> {{ .department }}</p>
-                    <div class="skills">
-                        <strong>技能:</strong>
-                        <ul>
-                            {{ range .skills }}
-                            <li>{{ . }}</li>
-                            {{ end }}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            {{ end }}
-        </div>
-        <div class="stats">
-            <h3>统计信息</h3>
-            <p>总员工数: {{ len .Site.Data.employees }}</p>
-            <p>部门分布:</p>
-            <ul>
-                {{ $departments := dict }}
-                {{ range .Site.Data.employees }}
-                    {{ $dept := .department }}
-                    {{ if isset $departments $dept }}
-                        {{ $count := index $departments $dept }}
-                        {{ $departments = merge $departments (dict $dept (add $count 1)) }}
-                    {{ else }}
-                        {{ $departments = merge $departments (dict $dept 1) }}
-                    {{ end }}
-                {{ end }}
-                {{ range $dept, $count := $departments }}
-                <li>{{ $dept }}: {{ $count }}人</li>
-                {{ end }}
-            </ul>
-        </div>
-    </div>
-
-    <hr class="section-divider">
-
     <!-- JSON 输入解析器 -->
     <div class="json-parser">
-        <h3>JSON 解析器</h3>
         <p>在下方输入或粘贴 JSON 文本，点击解析按钮查看结果：</p>
 
         <div class="json-input-section">
