@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize JSON parser
     initJsonParser();
+
+    // Initialize XML parser
+    initXmlParser();
 });
 
 // Syntax highlighting for JSON
@@ -307,6 +310,61 @@ style.textContent = `
     }
     .json-stats .stat-label { font-weight: 600; color: #555; }
     .json-stats .stat-value { color: #667eea; }
+
+    /* XML Parser Styles */
+    .xml-parser { margin-top: 1rem; }
+    .xml-input-section { margin: 1rem 0; }
+    #xmlInput {
+        width: 100%;
+        min-height: 200px;
+        padding: 12px;
+        border: 2px solid #e67e22;
+        border-radius: 8px;
+        font-family: 'Courier New', Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        resize: vertical;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        tab-size: 2;
+    }
+    #xmlInput:focus {
+        outline: none;
+        border-color: #d35400;
+        box-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
+    }
+    #xmlInput::placeholder { color: #6a6a6a; }
+    .xml-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .xml-tab-btn {
+        padding: 10px 20px;
+        border: none;
+        background: #f8f9fa;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .xml-tab-btn:hover { background: #e9ecef; }
+    .xml-tab-btn.active {
+        background: white;
+        border-bottom-color: #e67e22;
+        color: #e67e22;
+        font-weight: 600;
+    }
+    .xml-tag { color: #e67e22; font-weight: 600; }
+    .xml-attr-name { color: #27ae60; }
+    .xml-attr-value { color: #e6db74; }
+    .xml-text { color: #d4d4d4; }
+    .xml-comment { color: #888; font-style: italic; }
+    .xml-prolog { color: #66d9ef; }
+    .xml-tree-tag { color: #e67e22; font-weight: 600; }
+    .xml-tree-attr { color: #27ae60; }
+    .xml-tree-text { color: #e6db74; }
 `;
 document.head.appendChild(style);
 
@@ -678,4 +736,423 @@ function formatBytes(bytes) {
     var sizes = ['B', 'KB', 'MB', 'GB'];
     var i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// ========== XML Parser Core Logic ==========
+
+var parsedXmlDoc = null;
+var XML_STORAGE_KEY = 'hugoXmlInput';
+var XML_STORAGE_PARSED_KEY = 'hugoXmlParsed';
+
+function initXmlParser() {
+    var parseBtn = document.getElementById('xmlParseBtn');
+    var formatBtn = document.getElementById('xmlFormatBtn');
+    var minifyBtn = document.getElementById('xmlMinifyBtn');
+    var clearBtn = document.getElementById('xmlClearBtn');
+    var sampleBtn = document.getElementById('xmlSampleBtn');
+    var xmlInput = document.getElementById('xmlInput');
+
+    if (!parseBtn) return;
+
+    parseBtn.addEventListener('click', function() { parseXml(); });
+    formatBtn.addEventListener('click', function() { formatXml(); });
+    minifyBtn.addEventListener('click', function() { minifyXml(); });
+    clearBtn.addEventListener('click', function() { clearXml(); });
+    sampleBtn.addEventListener('click', function() { loadXmlSample(); });
+
+    // XML Tab switching
+    document.querySelectorAll('.xml-tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.xml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
+        });
+    });
+
+    if (xmlInput) {
+        xmlInput.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                parseXml();
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 2;
+            }
+        });
+
+        xmlInput.addEventListener('input', function() {
+            try { localStorage.setItem(XML_STORAGE_KEY, this.value); } catch(e) {}
+        });
+
+        var saved = null;
+        try { saved = localStorage.getItem(XML_STORAGE_KEY); } catch(e) {}
+        if (saved) {
+            xmlInput.value = saved;
+            var wasParsed = false;
+            try { wasParsed = localStorage.getItem(XML_STORAGE_PARSED_KEY) === 'true'; } catch(e) {}
+            if (wasParsed) {
+                parseXml();
+            }
+        }
+    }
+}
+
+function parseXml() {
+    var input = document.getElementById('xmlInput');
+    var errorDiv = document.getElementById('xmlError');
+    var resultDiv = document.getElementById('xmlResult');
+
+    if (!input || !input.value.trim()) {
+        showXmlError('请输入 XML 文本');
+        return;
+    }
+
+    try {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(input.value, 'text/xml');
+        var parseError = doc.querySelector('parsererror');
+        if (parseError) {
+            showXmlError('XML 解析错误: ' + parseError.textContent.substring(0, 200));
+            return;
+        }
+        parsedXmlDoc = doc;
+        errorDiv.style.display = 'none';
+        resultDiv.style.display = 'block';
+        try { localStorage.setItem(XML_STORAGE_PARSED_KEY, 'true'); } catch(e) {}
+
+        renderXmlFormattedView(doc);
+        renderXmlTableView(doc);
+        renderXmlTreeView(doc);
+        renderXmlStatsView(doc, input.value);
+    } catch (e) {
+        showXmlError('XML 解析错误: ' + e.message);
+    }
+}
+
+function formatXml() {
+    var input = document.getElementById('xmlInput');
+    if (!input || !input.value.trim()) { showXmlError('请先输入 XML 文本'); return; }
+    try {
+        input.value = prettyPrintXml(input.value);
+        try { localStorage.setItem(XML_STORAGE_KEY, input.value); } catch(e) {}
+    } catch (e) {
+        showXmlError('XML 格式化错误: ' + e.message);
+    }
+}
+
+function minifyXml() {
+    var input = document.getElementById('xmlInput');
+    if (!input || !input.value.trim()) { showXmlError('请先输入 XML 文本'); return; }
+    try {
+        input.value = input.value.replace(/>\s+</g, '><').replace(/\n\s*/g, '').trim();
+        try { localStorage.setItem(XML_STORAGE_KEY, input.value); } catch(e) {}
+    } catch (e) {
+        showXmlError('XML 压缩错误: ' + e.message);
+    }
+}
+
+function clearXml() {
+    var input = document.getElementById('xmlInput');
+    if (input) input.value = '';
+    try { localStorage.removeItem(XML_STORAGE_KEY); localStorage.removeItem(XML_STORAGE_PARSED_KEY); } catch(e) {}
+    document.getElementById('xmlError').style.display = 'none';
+    document.getElementById('xmlResult').style.display = 'none';
+    parsedXmlDoc = null;
+}
+
+function loadXmlSample() {
+    var input = document.getElementById('xmlInput');
+    if (!input) return;
+    var sample = '<?xml version="1.0" encoding="UTF-8"?>\n<employees>\n  <employee id="1">\n    <name>张三</name>\n    <email>zhangsan@example.com</email>\n    <age>28</age>\n    <department>技术部</department>\n    <skills>\n      <skill>Go</skill>\n      <skill>Python</skill>\n      <skill>JavaScript</skill>\n    </skills>\n  </employee>\n  <employee id="2">\n    <name>李四</name>\n    <email>lisi@example.com</email>\n    <age>32</age>\n    <department>市场部</department>\n    <skills>\n      <skill>营销</skill>\n      <skill>数据分析</skill>\n    </skills>\n  </employee>\n  <employee id="3">\n    <name>王五</name>\n    <email>wangwu@example.com</email>\n    <age>25</age>\n    <department>设计部</department>\n    <skills>\n      <skill>UI设计</skill>\n      <skill>Figma</skill>\n    </skills>\n  </employee>\n</employees>';
+    input.value = sample;
+    try { localStorage.setItem(XML_STORAGE_KEY, input.value); } catch(e) {}
+    parseXml();
+}
+
+function showXmlError(msg) {
+    var errorDiv = document.getElementById('xmlError');
+    errorDiv.textContent = msg;
+    errorDiv.style.display = 'block';
+}
+
+// ========== XML View Renderers ==========
+
+function renderXmlFormattedView(doc) {
+    var el = document.getElementById('xmlFormatted');
+    var serializer = new XMLSerializer();
+    var xmlStr = prettyPrintXml(serializer.serializeToString(doc));
+    el.innerHTML = syntaxHighlightXml(xmlStr);
+}
+
+function renderXmlTableView(doc) {
+    var container = document.getElementById('xmlTable');
+    if (!container) return;
+
+    // Find repeated child elements to build a table
+    var root = doc.documentElement;
+    var children = getChildElements(root);
+
+    // Check if children are homogeneous (same tag name)
+    var childTags = {};
+    children.forEach(function(child) {
+        var tag = child.tagName;
+        childTags[tag] = (childTags[tag] || 0) + 1;
+    });
+
+    var dominantTag = null;
+    var maxCount = 0;
+    for (var tag in childTags) {
+        if (childTags[tag] > maxCount) {
+            maxCount = childTags[tag];
+            dominantTag = tag;
+        }
+    }
+
+    if (dominantTag && maxCount > 1) {
+        // Build table from repeated elements
+        var items = children.filter(function(c) { return c.tagName === dominantTag; });
+        var keys = [];
+        items.forEach(function(item) {
+            getChildElements(item).forEach(function(child) {
+                if (keys.indexOf(child.tagName) === -1) keys.push(child.tagName);
+            });
+            // Also collect attributes
+            for (var i = 0; i < item.attributes.length; i++) {
+                var attrName = '@' + item.attributes[i].name;
+                if (keys.indexOf(attrName) === -1) keys.push(attrName);
+            }
+        });
+
+        var html = '<table><thead><tr><th>#</th>';
+        keys.forEach(function(key) { html += '<th>' + escapeHtml(key) + '</th>'; });
+        html += '</tr></thead><tbody>';
+
+        items.forEach(function(item, index) {
+            html += '<tr><td>' + index + '</td>';
+            keys.forEach(function(key) {
+                var val = '';
+                if (key.charAt(0) === '@') {
+                    val = item.getAttribute(key.substring(1)) || '-';
+                } else {
+                    var childEl = item.querySelector(key);
+                    val = childEl ? childEl.textContent : '-';
+                }
+                html += '<td>' + escapeHtml(val) + '</td>';
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } else {
+        // Build key-value table from all elements
+        var html = '<table><thead><tr><th>元素 (Element)</th><th>文本内容 (Text)</th><th>属性 (Attributes)</th></tr></thead><tbody>';
+        var allElements = doc.querySelectorAll('*');
+        allElements.forEach(function(el) {
+            var hasChildren = getChildElements(el).length > 0;
+            if (!hasChildren) {
+                var attrs = [];
+                for (var i = 0; i < el.attributes.length; i++) {
+                    attrs.push(el.attributes[i].name + '="' + el.attributes[i].value + '"');
+                }
+                html += '<tr><td><strong>' + escapeHtml(el.tagName) + '</strong></td>';
+                html += '<td>' + escapeHtml(el.textContent) + '</td>';
+                html += '<td>' + escapeHtml(attrs.join(', ') || '-') + '</td></tr>';
+            }
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+}
+
+function renderXmlTreeView(doc) {
+    var container = document.getElementById('xmlTree');
+    if (!container) return;
+    container.innerHTML = buildXmlTreeHtml(doc.documentElement, true);
+
+    container.querySelectorAll('.json-tree-toggle').forEach(function(toggle) {
+        toggle.addEventListener('click', function() {
+            var children = this.parentElement.querySelector('.json-tree-node');
+            if (children) {
+                var isHidden = children.style.display === 'none';
+                children.style.display = isHidden ? 'block' : 'none';
+                this.textContent = isHidden ? '▼' : '▶';
+            }
+        });
+    });
+}
+
+function buildXmlTreeHtml(node, isRoot) {
+    if (node.nodeType === Node.TEXT_NODE) {
+        var text = node.textContent.trim();
+        if (text) return '<span class="xml-tree-text">' + escapeHtml(text) + '</span>';
+        return '';
+    }
+    if (node.nodeType === Node.COMMENT_NODE) {
+        return '<span class="xml-comment">&lt;!-- ' + escapeHtml(node.textContent) + ' --&gt;</span>';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    var hasChildren = getChildElements(node).length > 0 || (node.childNodes.length > 0 && hasTextContent(node));
+    var html = '';
+
+    if (hasChildren) {
+        html += '<span class="json-tree-toggle">▼</span> ';
+    }
+
+    html += '<span class="xml-tree-tag">&lt;' + escapeHtml(node.tagName) + '</span>';
+    for (var i = 0; i < node.attributes.length; i++) {
+        html += ' <span class="xml-tree-attr">' + escapeHtml(node.attributes[i].name) + '</span>="<span class="xml-tree-text">' + escapeHtml(node.attributes[i].value) + '</span>"';
+    }
+    html += '<span class="xml-tree-tag">&gt;</span>';
+
+    if (hasChildren) {
+        html += '<div class="json-tree-node">';
+        for (var j = 0; j < node.childNodes.length; j++) {
+            var childHtml = buildXmlTreeHtml(node.childNodes[j], false);
+            if (childHtml) html += '<div>' + childHtml + '</div>';
+        }
+        html += '</div>';
+        html += '<span class="xml-tree-tag">&lt;/' + escapeHtml(node.tagName) + '&gt;</span>';
+    }
+
+    return html;
+}
+
+function renderXmlStatsView(doc, rawXml) {
+    var container = document.getElementById('xmlStats');
+    if (!container) return;
+
+    var stats = analyzeXml(doc, rawXml);
+    var html = '<div class="stat-item"><span class="stat-label">根元素</span><span class="stat-value">' + escapeHtml(stats.rootElement) + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">总元素数</span><span class="stat-value">' + stats.totalElements + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">最大嵌套深度</span><span class="stat-value">' + stats.maxDepth + ' 层</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">属性总数</span><span class="stat-value">' + stats.totalAttributes + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">文本节点数</span><span class="stat-value">' + stats.textNodes + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">原始大小</span><span class="stat-value">' + formatBytes(stats.rawSize) + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">元素类型数</span><span class="stat-value">' + stats.uniqueTags + '</span></div>';
+
+    if (stats.tagList.length > 0 && stats.tagList.length <= 20) {
+        html += '<div class="stat-item"><span class="stat-label">元素列表</span><span class="stat-value">' + stats.tagList.join(', ') + '</span></div>';
+    }
+
+    container.innerHTML = html;
+}
+
+// ========== XML Utility Functions ==========
+
+function getChildElements(node) {
+    var elements = [];
+    for (var i = 0; i < node.childNodes.length; i++) {
+        if (node.childNodes[i].nodeType === Node.ELEMENT_NODE) {
+            elements.push(node.childNodes[i]);
+        }
+    }
+    return elements;
+}
+
+function hasTextContent(node) {
+    for (var i = 0; i < node.childNodes.length; i++) {
+        if (node.childNodes[i].nodeType === Node.TEXT_NODE && node.childNodes[i].textContent.trim()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function prettyPrintXml(xmlStr) {
+    var formatted = '';
+    var indent = '';
+    var tab = '  ';
+
+    // Remove existing whitespace between tags
+    xmlStr = xmlStr.replace(/>\s+</g, '><').replace(/\n/g, '').replace(/\r/g, '');
+
+    // Split into tokens
+    var tokens = xmlStr.match(/<[^>]+>|[^<]+/g) || [];
+
+    tokens.forEach(function(token) {
+        if (token.match(/^<\//)) {
+            // Closing tag
+            indent = indent.substring(tab.length);
+            if (formatted && !formatted.endsWith('\n')) formatted += '\n';
+            formatted += indent + token + '\n';
+        } else if (token.match(/^<[^/].*\/>$/)) {
+            // Self-closing tag
+            if (formatted && !formatted.endsWith('\n')) formatted += '\n';
+            formatted += indent + token + '\n';
+        } else if (token.match(/^</)) {
+            // Opening tag
+            if (formatted && !formatted.endsWith('\n')) formatted += '\n';
+            formatted += indent + token + '\n';
+            // Check if NOT followed immediately by closing tag
+            indent += tab;
+        } else {
+            // Text content
+            var text = token.trim();
+            if (text) {
+                formatted += indent + text;
+            }
+        }
+    });
+
+    return formatted.trim();
+}
+
+function syntaxHighlightXml(xml) {
+    xml = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Highlight prolog <?xml ... ?>
+    xml = xml.replace(/(&lt;\?xml.*?\?&gt;)/g, '<span class="xml-prolog">$1</span>');n
+    // Highlight comments <!-- ... -->
+    xml = xml.replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>');n
+    // Highlight attributes name="value"
+    xml = xml.replace(/(\s)([\w:-]+)(=)("[^"]*")/g, '$1<span class="xml-attr-name">$2</span>$3<span class="xml-attr-value">$4</span>');
+
+    // Highlight tags
+    xml = xml.replace(/(&lt;\/?)([\w:-]+)/g, '<span class="xml-tag">$1$2</span>');
+
+    // Highlight closing >
+    xml = xml.replace(/(\/?&gt;)/g, '<span class="xml-tag">$1</span>');
+
+    return xml;
+}
+
+function analyzeXml(doc, rawXml) {
+    var result = {
+        rootElement: doc.documentElement ? doc.documentElement.tagName : '-',
+        totalElements: 0,
+        maxDepth: 0,
+        totalAttributes: 0,
+        textNodes: 0,
+        rawSize: rawXml.length,
+        uniqueTags: 0,
+        tagList: []
+    };
+
+    var tags = {};
+
+    function traverse(node, depth) {
+        if (depth > result.maxDepth) result.maxDepth = depth;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            result.totalElements++;
+            result.totalAttributes += node.attributes.length;
+            tags[node.tagName] = (tags[node.tagName] || 0) + 1;
+            for (var i = 0; i < node.childNodes.length; i++) {
+                traverse(node.childNodes[i], depth + 1);
+            }
+        } else if (node.nodeType === Node.TEXT_NODE) {
+            if (node.textContent.trim()) result.textNodes++;
+        }
+    }
+
+    traverse(doc.documentElement, 0);
+    result.uniqueTags = Object.keys(tags).length;
+    result.tagList = Object.keys(tags);
+    return result;
 }

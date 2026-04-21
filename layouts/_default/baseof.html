@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .Site.Title }} - 在线JSON解析工具</title>
+    <title>{{ if .IsHome }}{{ .Site.Title }} - 在线JSON解析工具{{ else if eq .Title "XML数据" }}{{ .Site.Title }} - 在线XML解析工具{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
 
     <!-- SEO Meta -->
-    <meta name="description" content="在线JSON解析工具，支持格式化、压缩、表格视图、树形视图和统计信息，输入JSON文本即可实时解析。">
-    <meta name="keywords" content="JSON解析,JSON格式化,JSON压缩,在线JSON工具,静态网站,Hugo">
+    <meta name="description" content="{{ if .IsHome }}在线JSON解析工具，支持格式化、压缩、表格视图、树形视图和统计信息，输入JSON文本即可实时解析。{{ else if eq .Title "XML数据" }}在线XML解析工具，支持格式化、压缩、表格视图、树形视图和统计信息，输入XML文本即可实时解析。{{ else }}在线数据解析工具，支持JSON和XML格式化、表格视图、树形视图{{ end }}">
+    <meta name="keywords" content="JSON解析,JSON格式化,XML解析,XML格式化,JSON压缩,XML压缩,在线JSON工具,在线XML工具,静态网站,Hugo">
     <meta name="author" content="turningOwei">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ .Permalink }}">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ .Site.Title }} - 在线JSON解析">
-    <meta property="og:description" content="在线JSON解析工具，支持格式化、表格、树形等多种视图">
+    <meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }} - 在线JSON解析{{ else if eq .Title "XML数据" }}{{ .Site.Title }} - 在线XML解析{{ else }}{{ .Title }}{{ end }}">
+    <meta property="og:description" content="{{ if .IsHome }}在线JSON解析工具，支持格式化、表格、树形等多种视图{{ else if eq .Title "XML数据" }}在线XML解析工具，支持格式化、表格、树形等多种视图{{ else }}在线数据解析工具{{ end }}">
     <meta property="og:url" content="{{ .Permalink }}">
     <meta property="og:site_name" content="{{ .Site.Title }}">
     <meta property="og:locale" content="zh_CN">
@@ -23,7 +23,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="{{ .Site.Title }}">
-    <meta name="twitter:description" content="在线JSON解析工具">
+    <meta name="twitter:description" content="{{ if .IsHome }}在线JSON解析工具{{ else if eq .Title "XML数据" }}在线XML解析工具{{ else }}在线数据解析工具{{ end }}">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -32,7 +32,7 @@
       "@type": "WebApplication",
       "name": "{{ .Site.Title }}",
       "url": "{{ .Site.BaseURL }}",
-      "description": "在线JSON解析工具，支持格式化、压缩、表格视图、树形视图和统计信息",
+      "description": "在线JSON/XML解析工具，支持格式化、压缩、表格视图、树形视图和统计信息",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Any",
       "offers": {
@@ -49,6 +49,10 @@
 <body>
     <header>
         <h1>{{ .Site.Title }}</h1>
+        <nav>
+            <a href="{{ .Site.Home.RelPermalink }}"{{ if .IsHome }} class="active"{{ end }}>JSON解析</a>
+            <a href="{{ absURL "xml-data/" }}"{{ if eq .Title "XML数据" }} class="active"{{ end }}>XML解析</a>
+        </nav>
     </header>
     
     <main>

@@ -1,0 +1,68 @@
+{{ define "main" }}
+<div class="container">
+    <!-- SEO 可索引内容 -->
+    <section class="seo-content">
+        <h2>在线 XML 解析工具</h2>
+        <p>免费的在线 XML 解析器，支持 XML 格式化、压缩、表格视图、树形视图和统计分析。粘贴任意 XML 文本即可实时解析，支持属性、命名空间等多种 XML 特性。数据在浏览器本地处理，不上传服务器，安全可靠。</p>
+    </section>
+
+    <!-- XML 输入解析器 -->
+    <div class="xml-parser">
+        <p>在下方输入或粘贴 XML 文本，点击解析按钮查看结果：</p>
+
+        <div class="xml-input-section">
+            <textarea id="xmlInput" placeholder='粘贴 XML 文本，例如：
+<employees>
+  <employee id="1">
+    <name>张三</name>
+    <age>28</age>
+    <department>技术部</department>
+  </employee>
+  <employee id="2">
+    <name>李四</name>
+    <age>32</age>
+    <department>市场部</department>
+  </employee>
+</employees>' rows="12"></textarea>
+            <div class="xml-actions">
+                <button id="xmlParseBtn" class="action-btn parse-btn">解析 XML</button>
+                <button id="xmlFormatBtn" class="action-btn format-btn">格式化</button>
+                <button id="xmlMinifyBtn" class="action-btn minify-btn">压缩</button>
+                <button id="xmlClearBtn" class="action-btn clear-btn">清空</button>
+                <button id="xmlSampleBtn" class="action-btn sample-btn">加载示例</button>
+            </div>
+        </div>
+
+        <div id="xmlError" class="json-error" style="display:none;"></div>
+
+        <div id="xmlResult" class="json-result" style="display:none;">
+            <h3>解析结果</h3>
+
+            <div class="result-tabs">
+                <button class="xml-tab-btn active" data-tab="xml-formatted">格式化视图</button>
+                <button class="xml-tab-btn" data-tab="xml-table">表格视图</button>
+                <button class="xml-tab-btn" data-tab="xml-tree">树形视图</button>
+                <button class="xml-tab-btn" data-tab="xml-stats">统计信息</button>
+            </div>
+
+            <div id="tab-xml-formatted" class="tab-content active">
+                <div class="json-display">
+                    <pre><code id="xmlFormatted"></code></pre>
+                </div>
+            </div>
+
+            <div id="tab-xml-table" class="tab-content">
+                <div class="json-table" id="xmlTable"></div>
+            </div>
+
+            <div id="tab-xml-tree" class="tab-content">
+                <div class="json-tree" id="xmlTree"></div>
+            </div>
+
+            <div id="tab-xml-stats" class="tab-content">
+                <div class="json-stats" id="xmlStats"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

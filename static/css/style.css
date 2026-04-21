@@ -40,6 +40,11 @@ nav a:hover {
     background: rgba(255,255,255,0.2);
 }
 
+nav a.active {
+    background: rgba(255,255,255,0.3);
+    font-weight: 600;
+}
+
 main {
     max-width: 1200px;
     margin: 2rem auto;
