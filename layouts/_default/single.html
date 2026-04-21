@@ -2,5 +2,57 @@
 <div class="container">
     <h1>{{ .Title }}</h1>
     {{ .Content }}
+
+    <!-- JSON 输入解析器 -->
+    <div class="json-parser">
+        <h3>JSON 解析器</h3>
+        <p>在下方输入或粘贴 JSON 文本，点击解析按钮查看结果：</p>
+
+        <div class="json-input-section">
+            <textarea id="jsonInput" placeholder='粘贴 JSON 文本，例如：
+[
+  {"name": "张三", "age": 28},
+  {"name": "李四", "age": 32}
+]' rows="12"></textarea>
+            <div class="json-actions">
+                <button id="parseBtn" class="action-btn parse-btn">解析 JSON</button>
+                <button id="formatBtn" class="action-btn format-btn">格式化</button>
+                <button id="minifyBtn" class="action-btn minify-btn">压缩</button>
+                <button id="clearBtn" class="action-btn clear-btn">清空</button>
+                <button id="sampleBtn" class="action-btn sample-btn">加载示例</button>
+            </div>
+        </div>
+
+        <div id="jsonError" class="json-error" style="display:none;"></div>
+
+        <div id="jsonResult" class="json-result" style="display:none;">
+            <h3>解析结果</h3>
+
+            <div class="result-tabs">
+                <button class="tab-btn active" data-tab="formatted">格式化视图</button>
+                <button class="tab-btn" data-tab="table">表格视图</button>
+                <button class="tab-btn" data-tab="tree">树形视图</button>
+                <button class="tab-btn" data-tab="stats">统计信息</button>
+            </div>
+
+            <div id="tab-formatted" class="tab-content active">
+                <div class="json-display">
+                    <pre><code id="jsonFormatted"></code></pre>
+                </div>
+            </div>
+
+            <div id="tab-table" class="tab-content">
+                <div class="json-table" id="jsonTable"></div>
+            </div>
+
+            <div id="tab-tree" class="tab-content">
+                <div class="json-tree" id="jsonTree"></div>
+            </div>
+
+            <div id="tab-stats" class="tab-content">
+                <div class="json-stats" id="jsonStats"></div>
+            </div>
+        </div>
+    </div>
 </div>
 {{ end }}
