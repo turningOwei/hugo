@@ -65,4 +65,22 @@
         </div>
     </div>
 </div>
+
+<!-- Fix XML formatting: keep simple elements on one line -->
+<script>
+(function() {
+    // Override prettyPrintXml to keep <tag>text</tag> on one line
+    var origPrettyPrintXml = window.prettyPrintXml;
+    if (!origPrettyPrintXml) return;
+    
+    window.prettyPrintXml = function(xmlStr) {
+        var result = origPrettyPrintXml(xmlStr);
+        // Fix: merge lines where opening tag, text, and closing tag are split
+        result = result.replace(/(>\n\s*)([^<\n]+)(\n\s*<\/)/g, '$1$2$3');
+        // Remove extra whitespace in simple tag-text-tag patterns
+        result = result.replace(/(<[^>/]+>)\s*\n\s*([^<]+)\s*\n\s*(<\/[^>]+>)/g, '$1$2$3');
+        return result;
+    };
+})();
+</script>
 {{ end }}
