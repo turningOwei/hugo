@@ -46,7 +46,7 @@ function syntaxHighlight(json) {
 
 // Add search feature for employee cards
 function addSearchFeature() {
-    const container = document.querySelector('.container');
+    const container = document.querySelector('.employee-grid');
     if (!container) return;
     
     const searchDiv = document.createElement('div');
@@ -55,7 +55,7 @@ function addSearchFeature() {
         <input type="text" id="searchInput" placeholder="搜索员工姓名、邮箱或部门..." />
     `;
     
-    const h2 = container.querySelector('h2');
+    const h2 = container.parentElement.querySelector('h2');
     if (h2) {
         h2.after(searchDiv);
     }
@@ -80,8 +80,8 @@ function addSearchFeature() {
 
 // Add department filter buttons
 function addDepartmentFilter() {
-    const statsDiv = document.querySelector('.stats');
-    if (!statsDiv) return;
+    const grid = document.querySelector('.employee-grid');
+    if (!grid) return;
     
     const departments = new Set();
     document.querySelectorAll('.employee-card').forEach(card => {
@@ -100,7 +100,7 @@ function addDepartmentFilter() {
         filterDiv.innerHTML += `<button class="filter-btn" data-dept="${dept}">${dept}</button>`;
     });
     
-    const h2 = document.querySelector('h2');
+    const h2 = grid.parentElement.querySelector('h2');
     if (h2) {
         h2.after(filterDiv);
     }
