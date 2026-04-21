@@ -356,6 +356,68 @@ style.textContent = `
         color: #e67e22;
         font-weight: 600;
     }
+    .xml-error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 5px;
+        border: 1px solid #f5c6cb;
+        margin: 1rem 0;
+        font-family: monospace;
+    }
+    .xml-result { margin-top: 1.5rem; }
+    .xml-result-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 1rem;
+    }
+    .xml-tab-content { display: none; }
+    .xml-tab-content.active { display: block; }
+    .xml-display {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-family: 'Courier New', Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    .xml-table table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+    }
+    .xml-table th, .xml-table td {
+        border: 1px solid #ddd;
+        padding: 8px 12px;
+        text-align: left;
+    }
+    .xml-table th {
+        background: #e67e22;
+        color: white;
+    }
+    .xml-table tr:nth-child(even) { background: #f9f9f9; }
+    .xml-tree { font-family: 'Courier New', Consolas, monospace; font-size: 0.9rem; }
+    .xml-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+    }
+    .xml-stats .stat-label { font-weight: 600; color: #555; }
+    .xml-stats .stat-value { color: #e67e22; }
+    .xml-parse-btn { background: #e67e22; color: white; }
+    .xml-parse-btn:hover { background: #d35400; }
+    .xml-format-btn { background: #28a745; color: white; }
+    .xml-format-btn:hover { background: #218838; }
+    .xml-minify-btn { background: #ffc107; color: #333; }
+    .xml-minify-btn:hover { background: #e0a800; }
+    .xml-clear-btn { background: #dc3545; color: white; }
+    .xml-clear-btn:hover { background: #c82333; }
+    .xml-sample-btn { background: #17a2b8; color: white; }
+    .xml-sample-btn:hover { background: #138496; }
     .xml-tag { color: #e67e22; font-weight: 600; }
     .xml-attr-name { color: #27ae60; }
     .xml-attr-value { color: #e6db74; }
@@ -764,7 +826,7 @@ function initXmlParser() {
     document.querySelectorAll('.xml-tab-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.xml-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            document.querySelectorAll('.xml-tab-content').forEach(function(c) { c.classList.remove('active'); });
             btn.classList.add('active');
             document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
         });
@@ -1108,9 +1170,9 @@ function syntaxHighlightXml(xml) {
     xml = xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     // Highlight prolog <?xml ... ?>
-    xml = xml.replace(/(&lt;\?xml.*?\?&gt;)/g, '<span class="xml-prolog">$1</span>');n
+    xml = xml.replace(/(&lt;\?xml.*?\?&gt;)/g, '<span class="xml-prolog">$1</span>');
     // Highlight comments <!-- ... -->
-    xml = xml.replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>');n
+    xml = xml.replace(/(&lt;!--.*?--&gt;)/g, '<span class="xml-comment">$1</span>');
     // Highlight attributes name="value"
     xml = xml.replace(/(\s)([\w:-]+)(=)("[^"]*")/g, '$1<span class="xml-attr-name">$2</span>$3<span class="xml-attr-value">$4</span>');
 

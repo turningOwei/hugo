@@ -25,42 +25,42 @@
   </employee>
 </employees>' rows="12"></textarea>
             <div class="xml-actions">
-                <button id="xmlParseBtn" class="action-btn parse-btn">解析 XML</button>
-                <button id="xmlFormatBtn" class="action-btn format-btn">格式化</button>
-                <button id="xmlMinifyBtn" class="action-btn minify-btn">压缩</button>
-                <button id="xmlClearBtn" class="action-btn clear-btn">清空</button>
-                <button id="xmlSampleBtn" class="action-btn sample-btn">加载示例</button>
+                <button id="xmlParseBtn" class="action-btn xml-parse-btn">解析 XML</button>
+                <button id="xmlFormatBtn" class="action-btn xml-format-btn">格式化</button>
+                <button id="xmlMinifyBtn" class="action-btn xml-minify-btn">压缩</button>
+                <button id="xmlClearBtn" class="action-btn xml-clear-btn">清空</button>
+                <button id="xmlSampleBtn" class="action-btn xml-sample-btn">加载示例</button>
             </div>
         </div>
 
-        <div id="xmlError" class="json-error" style="display:none;"></div>
+        <div id="xmlError" class="xml-error" style="display:none;"></div>
 
-        <div id="xmlResult" class="json-result" style="display:none;">
+        <div id="xmlResult" class="xml-result" style="display:none;">
             <h3>解析结果</h3>
 
-            <div class="result-tabs">
+            <div class="xml-result-tabs">
                 <button class="xml-tab-btn active" data-tab="xml-formatted">格式化视图</button>
                 <button class="xml-tab-btn" data-tab="xml-table">表格视图</button>
                 <button class="xml-tab-btn" data-tab="xml-tree">树形视图</button>
                 <button class="xml-tab-btn" data-tab="xml-stats">统计信息</button>
             </div>
 
-            <div id="tab-xml-formatted" class="tab-content active">
-                <div class="json-display">
+            <div id="tab-xml-formatted" class="xml-tab-content active">
+                <div class="xml-display">
                     <pre><code id="xmlFormatted"></code></pre>
                 </div>
             </div>
 
-            <div id="tab-xml-table" class="tab-content">
-                <div class="json-table" id="xmlTable"></div>
+            <div id="tab-xml-table" class="xml-tab-content">
+                <div class="xml-table" id="xmlTable"></div>
             </div>
 
-            <div id="tab-xml-tree" class="tab-content">
-                <div class="json-tree" id="xmlTree"></div>
+            <div id="tab-xml-tree" class="xml-tab-content">
+                <div class="xml-tree" id="xmlTree"></div>
             </div>
 
-            <div id="tab-xml-stats" class="tab-content">
-                <div class="json-stats" id="xmlStats"></div>
+            <div id="tab-xml-stats" class="xml-tab-content">
+                <div class="xml-stats" id="xmlStats"></div>
             </div>
         </div>
     </div>
