@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .Title }}</title>
-    <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+    <link rel="stylesheet" href="{{ absURL "css/style.css" }}">
 </head>
 <body>
     <header>
         <h1>{{ .Site.Title }}</h1>
         <nav>
-            <a href="{{ "/" | relURL }}">首页</a>
-            <a href="{{ "/json-data" | relURL }}">JSON数据</a>
+            <a href="{{ .Site.Home.RelPermalink }}">首页</a>
+            <a href="{{ absURL "json-data/" }}">JSON数据</a>
         </nav>
     </header>
     
@@ -23,6 +23,6 @@
         <p>&copy; 2026 {{ .Site.Title }}. All rights reserved.</p>
     </footer>
     
-    <script src="{{ "js/main.js" | relURL }}"></script>
+    <script src="{{ absURL "js/main.js" }}"></script>
 </body>
 </html>
