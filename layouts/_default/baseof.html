@@ -68,5 +68,6 @@
     </footer>
     
     <script src="{{ absURL "js/main.js" }}" defer></script>
+    {{ if eq .Title "XML数据" }}<script src="{{ absURL "js/xml-fix.js" }}" defer></script>{{ end }}
 </body>
 </html>
