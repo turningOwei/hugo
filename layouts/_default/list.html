@@ -1,0 +1,42 @@
+{{ define "main" }}
+<div class="container">
+    <h2>JSON原始数据</h2>
+    <p>以下是解析的JSON原始数据：</p>
+    
+    <div class="json-display">
+        <pre><code id="json-data">{{ jsonify (dict "indent" "  ") .Site.Data.employees }}</code></pre>
+    </div>
+    
+    <div class="json-table">
+        <h3>表格视图</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>姓名</th>
+                    <th>邮箱</th>
+                    <th>年龄</th>
+                    <th>部门</th>
+                    <th>技能</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .Site.Data.employees }}
+                <tr>
+                    <td>{{ .id }}</td>
+                    <td>{{ .name }}</td>
+                    <td>{{ .email }}</td>
+                    <td>{{ .age }}</td>
+                    <td>{{ .department }}</td>
+                    <td>
+                        {{ range $index, $skill := .skills }}
+                            {{ if $index }}, {{ end }}{{ $skill }}
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{ end }}

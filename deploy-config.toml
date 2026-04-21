@@ -1,0 +1,32 @@
+# Google Cloud Storage Deployment Configuration
+# Update these values before deploying
+
+[GCP]
+# Your Google Cloud Project ID
+ProjectID = "your-project-id"
+
+# Your Cloud Storage bucket name (must be globally unique)
+BucketName = "your-unique-bucket-name"
+
+# Storage region (choose one closest to your users)
+# Options: US, US-EAST1, US-CENTRAL1, EU, ASIA-EAST1, ASIA-NORTHEAST1, etc.
+Region = "US-EAST1"
+
+# Website configuration
+IndexPage = "index.html"
+ErrorPage = "404.html"
+
+# Cache settings (in seconds)
+StaticCacheMaxAge = 31536000  # 1 year for static assets
+HTMLCacheMaxAge = 0           # No cache for HTML files
+
+# Deployment options
+[Deployment]
+# Delete files in bucket that aren't in local build
+DeleteExtraFiles = true
+
+# Number of parallel transfers
+ParallelTransfers = 32
+
+# Public read access
+PublicRead = true

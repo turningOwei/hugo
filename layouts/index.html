@@ -1,0 +1,49 @@
+{{ define "main" }}
+<div class="container">
+    <h2>员工数据展示</h2>
+    <p>以下是从JSON文件解析的员工信息：</p>
+    
+    <div class="employee-grid">
+        {{ range .Site.Data.employees }}
+        <div class="employee-card">
+            <h3>{{ .name }}</h3>
+            <div class="employee-info">
+                <p><strong>ID:</strong> {{ .id }}</p>
+                <p><strong>邮箱:</strong> {{ .email }}</p>
+                <p><strong>年龄:</strong> {{ .age }}</p>
+                <p><strong>部门:</strong> {{ .department }}</p>
+                <div class="skills">
+                    <strong>技能:</strong>
+                    <ul>
+                        {{ range .skills }}
+                        <li>{{ . }}</li>
+                        {{ end }}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    
+    <div class="stats">
+        <h3>统计信息</h3>
+        <p>总员工数: {{ len .Site.Data.employees }}</p>
+        <p>部门分布:</p>
+        <ul>
+            {{ $departments := dict }}
+            {{ range .Site.Data.employees }}
+                {{ $dept := .department }}
+                {{ if isset $departments $dept }}
+                    {{ $count := index $departments $dept }}
+                    {{ $departments = merge $departments (dict $dept (add $count 1)) }}
+                {{ else }}
+                    {{ $departments = merge $departments (dict $dept 1) }}
+                {{ end }}
+            {{ end }}
+            {{ range $dept, $count := $departments }}
+            <li>{{ $dept }}: {{ $count }}人</li>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ end }}

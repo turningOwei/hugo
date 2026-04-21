@@ -1,0 +1,14 @@
+[
+  {
+    "source": "**/*.@(html|css|js|json|xml|txt|svg|woff|woff2|ttf|eot|png|jpg|jpeg|gif|ico|webp)",
+    "headers": {
+      "Cache-Control": "public, max-age=31536000, immutable"
+    }
+  },
+  {
+    "source": "**/*.@(html)",
+    "headers": {
+      "Cache-Control": "public, max-age=0, must-revalidate"
+    }
+  }
+]
