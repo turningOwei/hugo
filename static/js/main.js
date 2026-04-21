@@ -314,6 +314,7 @@ document.head.appendChild(style);
 
 var parsedJsonData = null;
 var STORAGE_KEY = 'hugoJsonInput';
+var STORAGE_PARSED_KEY = 'hugoJsonParsed';
 
 function initJsonParser() {
     var parseBtn = document.getElementById('parseBtn');
@@ -369,6 +370,12 @@ function initJsonParser() {
         try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
         if (saved) {
             jsonInput.value = saved;
+            // Auto-restore parse results if previously parsed
+            var wasParsed = false;
+            try { wasParsed = localStorage.getItem(STORAGE_PARSED_KEY) === 'true'; } catch(e) {}
+            if (wasParsed) {
+                parseJson();
+            }
         }
     }
 }
@@ -387,6 +394,7 @@ function parseJson() {
         parsedJsonData = JSON.parse(input.value);
         errorDiv.style.display = 'none';
         resultDiv.style.display = 'block';
+        try { localStorage.setItem(STORAGE_PARSED_KEY, 'true'); } catch(e) {}
 
         renderFormattedView(parsedJsonData);
         renderTableView(parsedJsonData);
@@ -424,7 +432,7 @@ function minifyJson() {
 function clearJson() {
     var input = document.getElementById('jsonInput');
     if (input) input.value = '';
-    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(STORAGE_PARSED_KEY); } catch(e) {}
     document.getElementById('jsonError').style.display = 'none';
     document.getElementById('jsonResult').style.display = 'none';
     parsedJsonData = null;
