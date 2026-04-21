@@ -184,8 +184,20 @@ style.textContent = `
     .json-boolean { color: #66d9ef; }
     .json-null { color: #66d9ef; }
 
+    /* Section divider */
+    .section-divider {
+        border: none;
+        border-top: 2px solid #e9ecef;
+        margin: 2rem 0;
+    }
+
+    /* Demo section */
+    .demo-section {
+        margin-bottom: 1rem;
+    }
+
     /* JSON Parser Styles */
-    .json-parser { margin-top: 2rem; }
+    .json-parser { margin-top: 1rem; }
     .json-input-section { margin: 1rem 0; }
     #jsonInput {
         width: 100%;
@@ -241,15 +253,72 @@ style.textContent = `
         margin: 1rem 0;
         font-family: monospace;
     }
+    .json-result { margin-top: 1.5rem; }
+    .result-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid #dee2e6;
+        margin-bottom: 1rem;
+    }
+    .tab-btn {
+        padding: 10px 20px;
+        border: none;
+        background: #f8f9fa;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .tab-btn:hover { background: #e9ecef; }
+    .tab-btn.active {
+        background: white;
+        border-bottom-color: #667eea;
+        color: #667eea;
+        font-weight: 600;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .json-tree-node {
+        margin-left: 20px;
+        padding: 2px 0;
+    }
+    .json-tree-key {
+        color: #f92672;
+        font-weight: 600;
+    }
+    .json-tree-value { color: #e6db74; }
+    .json-tree-number { color: #ae81ff; }
+    .json-tree-bool { color: #66d9ef; }
+    .json-tree-null { color: #66d9ef; font-style: italic; }
+    .json-tree-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: inline-block;
+        width: 16px;
+        text-align: center;
+        color: #888;
+    }
+    .json-tree-toggle:hover { color: #333; }
+    .json-stats .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+    }
+    .json-stats .stat-label { font-weight: 600; color: #555; }
+    .json-stats .stat-value { color: #667eea; }
 `;
 document.head.appendChild(style);
 
 // ========== JSON Parser Core Logic ==========
 
-let parsedJsonData = null;
+var parsedJsonData = null;
+var STORAGE_KEY = 'hugoJsonInput';
 
 function initJsonParser() {
     var parseBtn = document.getElementById('parseBtn');
+    var formatBtn = document.getElementById('formatBtn');
+    var minifyBtn = document.getElementById('minifyBtn');
     var clearBtn = document.getElementById('clearBtn');
     var sampleBtn = document.getElementById('sampleBtn');
     var jsonInput = document.getElementById('jsonInput');
@@ -258,8 +327,20 @@ function initJsonParser() {
     if (!parseBtn) return;
 
     parseBtn.addEventListener('click', function() { parseJson(); });
+    formatBtn.addEventListener('click', function() { formatJson(); });
+    minifyBtn.addEventListener('click', function() { minifyJson(); });
     clearBtn.addEventListener('click', function() { clearJson(); });
     sampleBtn.addEventListener('click', function() { loadSample(); });
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
+        });
+    });
 
     // Allow Ctrl+Enter to parse
     if (jsonInput) {
@@ -268,7 +349,7 @@ function initJsonParser() {
                 e.preventDefault();
                 parseJson();
             }
-            // Tab key inserts spaces
+            // Tab key inserts spaces instead of moving focus
             if (e.key === 'Tab') {
                 e.preventDefault();
                 var start = this.selectionStart;
@@ -277,18 +358,18 @@ function initJsonParser() {
                 this.selectionStart = this.selectionEnd = start + 2;
             }
         });
-    }
 
-    // Result search
-    var searchInput = document.getElementById('resultSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            var term = e.target.value.toLowerCase();
-            var cards = document.querySelectorAll('#resultCardGrid .employee-card');
-            cards.forEach(function(card) {
-                card.style.display = card.textContent.toLowerCase().indexOf(term) >= 0 ? 'block' : 'none';
-            });
+        // Save to localStorage on every input (so it persists across page navigation)
+        jsonInput.addEventListener('input', function() {
+            try { localStorage.setItem(STORAGE_KEY, this.value); } catch(e) {}
         });
+
+        // Restore from localStorage on page load
+        var saved = null;
+        try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+        if (saved) {
+            jsonInput.value = saved;
+        }
     }
 }
 
@@ -307,15 +388,43 @@ function parseJson() {
         errorDiv.style.display = 'none';
         resultDiv.style.display = 'block';
 
-        renderCardView(parsedJsonData);
+        renderFormattedView(parsedJsonData);
+        renderTableView(parsedJsonData);
+        renderTreeView(parsedJsonData);
+        renderStatsView(parsedJsonData);
     } catch (e) {
         showError('JSON 解析错误: ' + e.message);
+    }
+}
+
+function formatJson() {
+    var input = document.getElementById('jsonInput');
+    if (!input || !input.value.trim()) { showError('请先输入 JSON 文本'); return; }
+    try {
+        var parsed = JSON.parse(input.value);
+        input.value = JSON.stringify(parsed, null, 2);
+        try { localStorage.setItem(STORAGE_KEY, input.value); } catch(e) {}
+    } catch (e) {
+        showError('JSON 格式化错误: ' + e.message);
+    }
+}
+
+function minifyJson() {
+    var input = document.getElementById('jsonInput');
+    if (!input || !input.value.trim()) { showError('请先输入 JSON 文本'); return; }
+    try {
+        var parsed = JSON.parse(input.value);
+        input.value = JSON.stringify(parsed);
+        try { localStorage.setItem(STORAGE_KEY, input.value); } catch(e) {}
+    } catch (e) {
+        showError('JSON 压缩错误: ' + e.message);
     }
 }
 
 function clearJson() {
     var input = document.getElementById('jsonInput');
     if (input) input.value = '';
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
     document.getElementById('jsonError').style.display = 'none';
     document.getElementById('jsonResult').style.display = 'none';
     parsedJsonData = null;
@@ -327,11 +436,10 @@ function loadSample() {
     var sampleData = [
         { "id": 1, "name": "张三", "email": "zhangsan@example.com", "age": 28, "department": "技术部", "skills": ["Go", "Python", "JavaScript"] },
         { "id": 2, "name": "李四", "email": "lisi@example.com", "age": 32, "department": "市场部", "skills": ["营销", "数据分析", "项目管理"] },
-        { "id": 3, "name": "王五", "email": "wangwu@example.com", "age": 25, "department": "设计部", "skills": ["UI设计", "UX设计", "Figma"] },
-        { "id": 4, "name": "赵六", "email": "zhaoliu@example.com", "age": 30, "department": "技术部", "skills": ["Java", "Spring", "MySQL"] },
-        { "id": 5, "name": "钱七", "email": "qianqi@example.com", "age": 27, "department": "人事部", "skills": ["招聘", "培训", "绩效考核"] }
+        { "id": 3, "name": "王五", "email": "wangwu@example.com", "age": 25, "department": "设计部", "skills": ["UI设计", "UX设计", "Figma"] }
     ];
     input.value = JSON.stringify(sampleData, null, 2);
+    try { localStorage.setItem(STORAGE_KEY, input.value); } catch(e) {}
     parseJson();
 }
 
@@ -341,195 +449,214 @@ function showError(msg) {
     errorDiv.style.display = 'block';
 }
 
-// ========== Card View Renderer (same style as homepage) ==========
+// ========== View Renderers ==========
 
-function renderCardView(data) {
-    var grid = document.getElementById('resultCardGrid');
-    var filterContainer = document.getElementById('resultFilterButtons');
-    var statsContainer = document.getElementById('resultStats');
-    var searchInput = document.getElementById('resultSearchInput');
+function renderFormattedView(data) {
+    var el = document.getElementById('jsonFormatted');
+    var formatted = JSON.stringify(data, null, 2);
+    el.innerHTML = syntaxHighlightString(formatted);
+}
 
-    if (!grid) return;
-    grid.innerHTML = '';
-    filterContainer.innerHTML = '';
-    statsContainer.innerHTML = '';
+function renderTableView(data) {
+    var container = document.getElementById('jsonTable');
+    if (!container) return;
 
-    // Determine data format
-    var items = [];
-    if (Array.isArray(data)) {
-        items = data;
-    } else if (typeof data === 'object' && data !== null) {
-        items = [data];
-    } else {
-        grid.innerHTML = '<p>JSON 不是数组或对象，无法以卡片形式展示。</p>';
-        return;
-    }
-
-    if (items.length === 0) {
-        grid.innerHTML = '<p>空数组，没有数据。</p>';
-        return;
-    }
-
-    // Find a "name" or title-like field for the card heading
-    var nameField = findBestNameField(items[0]);
-
-    // Auto-detect filter field (look for fields with repeated values like "department", "category", "type", "group")
-    var filterField = findBestFilterField(items);
-
-    // Render cards
-    var allKeys = [];
-    items.forEach(function(item, index) {
-        if (typeof item !== 'object' || item === null) {
-            // primitive value
-            grid.innerHTML += '<div class="employee-card"><h3>项目 ' + (index + 1) + '</h3><div class="employee-info"><p><strong>值:</strong> ' + escapeHtml(String(item)) + '</p></div></div>';
-            return;
+    if (!Array.isArray(data)) {
+        if (typeof data === 'object' && data !== null) {
+            var html = '<table><thead><tr><th>键 (Key)</th><th>值 (Value)</th><th>类型</th></tr></thead><tbody>';
+            Object.keys(data).forEach(function(key) {
+                var val = data[key];
+                var type = Array.isArray(val) ? 'array[' + val.length + ']' : typeof val;
+                var display = Array.isArray(val) ? '[' + val.join(', ') + ']' : (typeof val === 'object' && val !== null ? JSON.stringify(val) : String(val));
+                html += '<tr><td><strong>' + escapeHtml(key) + '</strong></td><td>' + escapeHtml(display) + '</td><td>' + type + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p>该 JSON 不是数组或对象，无法生成表格。</p>';
         }
-        var cardHtml = '<div class="employee-card" data-index="' + index + '">';
-        var cardName = item[nameField] || ('项目 ' + (index + 1));
-        cardHtml += '<h3>' + escapeHtml(String(cardName)) + '</h3>';
-        cardHtml += '<div class="employee-info">';
+        return;
+    }
 
-        Object.keys(item).forEach(function(key) {
-            if (allKeys.indexOf(key) === -1) allKeys.push(key);
-            if (key === nameField) return; // already shown as heading
-            var val = item[key];
+    if (data.length === 0) {
+        container.innerHTML = '<p>空数组</p>';
+        return;
+    }
 
-            if (Array.isArray(val)) {
-                // Render as skill tags (same style as homepage)
-                cardHtml += '<div class="skills"><strong>' + escapeHtml(key) + ':</strong><ul>';
-                val.forEach(function(v) {
-                    cardHtml += '<li>' + escapeHtml(String(v)) + '</li>';
-                });
-                cardHtml += '</ul></div>';
-            } else if (typeof val === 'object' && val !== null) {
-                cardHtml += '<p><strong>' + escapeHtml(key) + ':</strong> ' + escapeHtml(JSON.stringify(val)) + '</p>';
-            } else {
-                cardHtml += '<p><strong>' + escapeHtml(key) + ':</strong> ' + escapeHtml(String(val)) + '</p>';
-            }
-        });
-
-        cardHtml += '</div></div>';
-        grid.innerHTML += cardHtml;
+    var keys = [];
+    data.forEach(function(item) {
+        if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+            Object.keys(item).forEach(function(key) {
+                if (keys.indexOf(key) === -1) keys.push(key);
+            });
+        }
     });
 
-    // Render filter buttons
-    if (filterField) {
-        var categories = {};
-        items.forEach(function(item) {
-            if (typeof item === 'object' && item !== null && item[filterField] !== undefined) {
-                var cat = String(item[filterField]);
-                categories[cat] = (categories[cat] || 0) + 1;
+    if (keys.length === 0) {
+        var html = '<table><thead><tr><th>#</th><th>值</th></tr></thead><tbody>';
+        data.forEach(function(item, i) {
+            html += '<tr><td>' + i + '</td><td>' + escapeHtml(String(item)) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        return;
+    }
+
+    var html = '<table><thead><tr><th>#</th>';
+    keys.forEach(function(key) { html += '<th>' + escapeHtml(key) + '</th>'; });
+    html += '</tr></thead><tbody>';
+
+    data.forEach(function(item, index) {
+        html += '<tr><td>' + index + '</td>';
+        keys.forEach(function(key) {
+            var val = item[key];
+            if (val === undefined) {
+                html += '<td>-</td>';
+            } else if (Array.isArray(val)) {
+                html += '<td>' + val.map(function(v) { return escapeHtml(String(v)); }).join(', ') + '</td>';
+            } else if (typeof val === 'object' && val !== null) {
+                html += '<td>' + escapeHtml(JSON.stringify(val)) + '</td>';
+            } else {
+                html += '<td>' + escapeHtml(String(val)) + '</td>';
             }
         });
+        html += '</tr>';
+    });
 
-        var filterHtml = '<button class="filter-btn active" data-dept="all">全部</button>';
-        Object.keys(categories).forEach(function(cat) {
-            filterHtml += '<button class="filter-btn" data-dept="' + escapeHtml(cat) + '">' + escapeHtml(cat) + ' (' + categories[cat] + ')</button>';
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function renderTreeView(data) {
+    var container = document.getElementById('jsonTree');
+    if (!container) return;
+    container.innerHTML = buildTreeHtml(data, true);
+
+    container.querySelectorAll('.json-tree-toggle').forEach(function(toggle) {
+        toggle.addEventListener('click', function() {
+            var children = this.parentElement.querySelector('.json-tree-node');
+            if (children) {
+                var isHidden = children.style.display === 'none';
+                children.style.display = isHidden ? 'block' : 'none';
+                this.textContent = isHidden ? '▼' : '▶';
+            }
         });
-        filterContainer.innerHTML = filterHtml;
+    });
+}
 
-        // Add click handlers
-        filterContainer.querySelectorAll('.filter-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                filterContainer.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
-                this.classList.add('active');
-                var selected = this.getAttribute('data-dept');
-                grid.querySelectorAll('.employee-card').forEach(function(card, i) {
-                    if (selected === 'all') {
-                        card.style.display = 'block';
-                    } else {
-                        var item = items[i];
-                        if (item && String(item[filterField]) === selected) {
-                            card.style.display = 'block';
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    }
-                });
+function buildTreeHtml(data, isRoot) {
+    if (data === null) return '<span class="json-tree-null">null</span>';
+    if (typeof data === 'boolean') return '<span class="json-tree-bool">' + data + '</span>';
+    if (typeof data === 'number') return '<span class="json-tree-number">' + data + '</span>';
+    if (typeof data === 'string') return '<span class="json-tree-value">"' + escapeHtml(data) + '"</span>';
+
+    if (Array.isArray(data)) {
+        var html = '<span class="json-tree-toggle">▼</span> <span style="color:#999">Array[' + data.length + ']</span>';
+        html += '<div class="json-tree-node">';
+        data.forEach(function(item, i) {
+            html += '<div><span class="json-tree-key">' + i + '</span>: ' + buildTreeHtml(item, false) + '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    if (typeof data === 'object') {
+        var keys = Object.keys(data);
+        var html = '<span class="json-tree-toggle">▼</span> <span style="color:#999">Object{' + keys.length + '}</span>';
+        html += '<div class="json-tree-node">';
+        keys.forEach(function(key) {
+            html += '<div><span class="json-tree-key">"' + escapeHtml(key) + '"</span>: ' + buildTreeHtml(data[key], false) + '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    return escapeHtml(String(data));
+}
+
+function renderStatsView(data) {
+    var container = document.getElementById('jsonStats');
+    if (!container) return;
+
+    var stats = analyzeJson(data);
+    var html = '<div class="stat-item"><span class="stat-label">数据类型</span><span class="stat-value">' + stats.type + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">总大小</span><span class="stat-value">' + formatBytes(JSON.stringify(data).length) + '</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">嵌套深度</span><span class="stat-value">' + stats.maxDepth + ' 层</span></div>';
+    html += '<div class="stat-item"><span class="stat-label">键的数量</span><span class="stat-value">' + stats.totalKeys + '</span></div>';
+
+    if (stats.type === 'array') {
+        html += '<div class="stat-item"><span class="stat-label">数组长度</span><span class="stat-value">' + stats.arrayLength + '</span></div>';
+        if (stats.itemTypes.length > 0) {
+            html += '<div class="stat-item"><span class="stat-label">元素类型</span><span class="stat-value">' + stats.itemTypes.join(', ') + '</span></div>';
+        }
+    }
+
+    if (stats.type === 'object' || stats.type === 'array') {
+        html += '<div class="stat-item"><span class="stat-label">字段列表</span><span class="stat-value">' + stats.allKeys.join(', ') + '</span></div>';
+    }
+
+    if (Object.keys(stats.typeCount).length > 0) {
+        html += '<div class="stat-item"><span class="stat-label">值类型分布</span><span class="stat-value">' + Object.keys(stats.typeCount).map(function(t) { return t + ': ' + stats.typeCount[t]; }).join(', ') + '</span></div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function analyzeJson(data) {
+    var result = { type: 'unknown', maxDepth: 0, totalKeys: 0, allKeys: [], arrayLength: 0, itemTypes: [], typeCount: {} };
+
+    if (data === null) { result.type = 'null'; return result; }
+    result.type = Array.isArray(data) ? 'array' : typeof data;
+
+    function traverse(obj, depth) {
+        if (depth > result.maxDepth) result.maxDepth = depth;
+        if (obj === null || typeof obj !== 'object') {
+            var t = obj === null ? 'null' : typeof obj;
+            result.typeCount[t] = (result.typeCount[t] || 0) + 1;
+            return;
+        }
+        if (Array.isArray(obj)) {
+            result.arrayLength = obj.length;
+            result.typeCount['array'] = (result.typeCount['array'] || 0) + 1;
+            obj.forEach(function(item) {
+                var itemType = item === null ? 'null' : (Array.isArray(item) ? 'array' : typeof item);
+                if (result.itemTypes.indexOf(itemType) === -1) result.itemTypes.push(itemType);
+                traverse(item, depth + 1);
             });
-        });
-    }
-
-    // Render stats (same style as homepage)
-    var statsHtml = '<h3>统计信息</h3>';
-    statsHtml += '<p>总记录数: ' + items.length + '</p>';
-
-    if (filterField) {
-        var categories = {};
-        items.forEach(function(item) {
-            if (typeof item === 'object' && item !== null && item[filterField] !== undefined) {
-                var cat = String(item[filterField]);
-                categories[cat] = (categories[cat] || 0) + 1;
-            }
-        });
-        statsHtml += '<p>' + escapeHtml(filterField) + '分布:</p><ul>';
-        Object.keys(categories).forEach(function(cat) {
-            statsHtml += '<li>' + escapeHtml(cat) + ': ' + categories[cat] + '条</li>';
-        });
-        statsHtml += '</ul>';
-    }
-
-    statsHtml += '<p>字段列表: ' + allKeys.map(function(k) { return escapeHtml(k); }).join(', ') + '</p>';
-    statsContainer.innerHTML = statsHtml;
-
-    // Reset search
-    if (searchInput) searchInput.value = '';
-}
-
-// Find the best field to use as the card heading
-function findBestNameField(item) {
-    if (typeof item !== 'object' || item === null) return null;
-    var nameCandidates = ['name', 'title', 'label', '名称', '标题', '姓名'];
-    for (var i = 0; i < nameCandidates.length; i++) {
-        if (item[nameCandidates[i]] !== undefined) return nameCandidates[i];
-    }
-    // Fallback: first string field
-    var keys = Object.keys(item);
-    for (var j = 0; j < keys.length; j++) {
-        if (typeof item[keys[j]] === 'string') return keys[j];
-    }
-    return keys[0] || null;
-}
-
-// Find the best field to use for filtering/grouping
-function findBestFilterField(items) {
-    if (!items.length || typeof items[0] !== 'object' || items[0] === null) return null;
-    var filterCandidates = ['department', 'category', 'type', 'group', 'status', '部门', '类别', '类型', '分组'];
-    for (var i = 0; i < filterCandidates.length; i++) {
-        var field = filterCandidates[i];
-        var hasField = false;
-        var values = {};
-        items.forEach(function(item) {
-            if (item[field] !== undefined) {
-                hasField = true;
-                values[String(item[field])] = true;
-            }
-        });
-        // Only use as filter if there are multiple different values and not all unique
-        if (hasField && Object.keys(values).length > 1 && Object.keys(values).length < items.length) {
-            return field;
+        } else {
+            result.typeCount['object'] = (result.typeCount['object'] || 0) + 1;
+            Object.keys(obj).forEach(function(key) {
+                result.totalKeys++;
+                if (result.allKeys.indexOf(key) === -1) result.allKeys.push(key);
+                traverse(obj[key], depth + 1);
+            });
         }
     }
-    // Fallback: find any string field with repeated values
-    var keys = Object.keys(items[0]);
-    for (var j = 0; j < keys.length; j++) {
-        var key = keys[j];
-        var values2 = {};
-        var count = 0;
-        items.forEach(function(item) {
-            if (typeof item[key] === 'string') {
-                values2[item[key]] = true;
-                count++;
-            }
-        });
-        if (count > 0 && Object.keys(values2).length > 1 && Object.keys(values2).length < items.length) {
-            return key;
-        }
-    }
-    return null;
+
+    traverse(data, 0);
+    return result;
 }
 
 // ========== Utility Functions ==========
+
+function syntaxHighlightString(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'json-number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'json-key';
+            } else {
+                cls = 'json-string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+            cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
 
 function escapeHtml(str) {
     var div = document.createElement('div');

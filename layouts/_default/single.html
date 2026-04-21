@@ -1,34 +1,105 @@
 {{ define "main" }}
 <div class="container">
     <h2>JSON 数据解析</h2>
-    <p>在下方输入或粘贴 JSON 文本，点击解析按钮，数据将以卡片形式展示：</p>
 
-    <!-- JSON 输入区域 -->
+    <!-- 员工数据示例展示 -->
+    <div class="demo-section">
+        <h3>示例：员工数据（来自 data/employees.json）</h3>
+        <div class="employee-grid">
+            {{ range .Site.Data.employees }}
+            <div class="employee-card">
+                <h3>{{ .name }}</h3>
+                <div class="employee-info">
+                    <p><strong>ID:</strong> {{ .id }}</p>
+                    <p><strong>邮箱:</strong> {{ .email }}</p>
+                    <p><strong>年龄:</strong> {{ .age }}</p>
+                    <p><strong>部门:</strong> {{ .department }}</p>
+                    <div class="skills">
+                        <strong>技能:</strong>
+                        <ul>
+                            {{ range .skills }}
+                            <li>{{ . }}</li>
+                            {{ end }}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+        </div>
+        <div class="stats">
+            <h3>统计信息</h3>
+            <p>总员工数: {{ len .Site.Data.employees }}</p>
+            <p>部门分布:</p>
+            <ul>
+                {{ $departments := dict }}
+                {{ range .Site.Data.employees }}
+                    {{ $dept := .department }}
+                    {{ if isset $departments $dept }}
+                        {{ $count := index $departments $dept }}
+                        {{ $departments = merge $departments (dict $dept (add $count 1)) }}
+                    {{ else }}
+                        {{ $departments = merge $departments (dict $dept 1) }}
+                    {{ end }}
+                {{ end }}
+                {{ range $dept, $count := $departments }}
+                <li>{{ $dept }}: {{ $count }}人</li>
+                {{ end }}
+            </ul>
+        </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- JSON 输入解析器 -->
     <div class="json-parser">
+        <h3>JSON 解析器</h3>
+        <p>在下方输入或粘贴 JSON 文本，点击解析按钮查看结果：</p>
+
         <div class="json-input-section">
             <textarea id="jsonInput" placeholder='粘贴 JSON 文本，例如：
 [
-  {"name": "张三", "email": "zhangsan@example.com", "age": 28, "department": "技术部", "skills": ["Go", "Python"]},
-  {"name": "李四", "email": "lisi@example.com", "age": 32, "department": "市场部", "skills": ["营销", "数据分析"]}
-]' rows="10"></textarea>
+  {"name": "张三", "age": 28},
+  {"name": "李四", "age": 32}
+]' rows="12"></textarea>
             <div class="json-actions">
                 <button id="parseBtn" class="action-btn parse-btn">解析 JSON</button>
+                <button id="formatBtn" class="action-btn format-btn">格式化</button>
+                <button id="minifyBtn" class="action-btn minify-btn">压缩</button>
                 <button id="clearBtn" class="action-btn clear-btn">清空</button>
                 <button id="sampleBtn" class="action-btn sample-btn">加载示例</button>
             </div>
         </div>
 
         <div id="jsonError" class="json-error" style="display:none;"></div>
-    </div>
 
-    <!-- 解析结果 - 卡片展示（同首页风格） -->
-    <div id="jsonResult" style="display:none;">
-        <div class="search-box">
-            <input type="text" id="resultSearchInput" placeholder="搜索..." />
+        <div id="jsonResult" class="json-result" style="display:none;">
+            <h3>解析结果</h3>
+
+            <div class="result-tabs">
+                <button class="tab-btn active" data-tab="formatted">格式化视图</button>
+                <button class="tab-btn" data-tab="table">表格视图</button>
+                <button class="tab-btn" data-tab="tree">树形视图</button>
+                <button class="tab-btn" data-tab="stats">统计信息</button>
+            </div>
+
+            <div id="tab-formatted" class="tab-content active">
+                <div class="json-display">
+                    <pre><code id="jsonFormatted"></code></pre>
+                </div>
+            </div>
+
+            <div id="tab-table" class="tab-content">
+                <div class="json-table" id="jsonTable"></div>
+            </div>
+
+            <div id="tab-tree" class="tab-content">
+                <div class="json-tree" id="jsonTree"></div>
+            </div>
+
+            <div id="tab-stats" class="tab-content">
+                <div class="json-stats" id="jsonStats"></div>
+            </div>
         </div>
-        <div id="resultFilterButtons" class="filter-buttons"></div>
-        <div id="resultCardGrid" class="employee-grid"></div>
-        <div id="resultStats" class="stats"></div>
     </div>
 </div>
 {{ end }}
